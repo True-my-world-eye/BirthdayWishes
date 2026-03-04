@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>生日快乐！✨</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- 引入谷歌字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 粒子背景画布 -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- 预加载遮罩 -->
+    <div id="loading">
+        <div class="loader-content">
+            <div class="cake-loader">🎂</div>
+            <p>正在装载惊喜...</p>
+        </div>
+    </div>
+
+    <!-- 音乐控制 -->
+    <div id="music-control" class="music-control">
+        <div class="music-bar-container">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+    </div>
+    <audio id="bg-music" loop>
+        <source src="assets/audio/bgm.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="container">
+        <!-- 第1页：生日序曲（解锁） -->
+        <section id="page-1" class="page active">
+            <div class="glass-card main-card">
+                <div class="floating-elements">
+                    <span class="float-item">🎈</span>
+                    <span class="float-item">✨</span>
+                    <span class="float-item">💖</span>
+                </div>
+                <div class="cake-illustration">
+                    <div class="svg-cake-wrapper">
+                        <!-- 这里的SVG会在JS中注入或通过CSS控制 -->
+                        <div class="glow-ring"></div>
+                        <div class="cake-symbol">🎂</div>
+                    </div>
+                </div>
+                <h1 class="title-gradient">专属生日序曲</h1>
+                <div class="input-group">
+                    <input type="text" id="unlock-input" placeholder="输入“生日快乐”解锁" maxlength="4">
+                    <button id="unlock-btn" class="glow-btn">开启惊喜</button>
+                </div>
+                <div id="skip-unlock" class="hidden-link">跳过解锁</div>
+            </div>
+        </section>
+
+        <!-- 第2页：趣味互动（吹蜡烛 & 签文） -->
+        <section id="page-2" class="page">
+            <div class="split-container">
+                <div class="interaction-card candle-card glass-card">
+                    <h3 class="card-title">🕯️ 许愿时刻</h3>
+                    <div class="cake-3d-wrapper">
+                        <div class="cake-body-3d">
+                            <div class="candles-grid" id="candles-container">
+                                <!-- JS 生成 6 根蜡烛 -->
+                            </div>
+                        </div>
+                    </div>
+                    <p class="hint-msg">长按蛋糕中心“吹灭”蜡烛</p>
+                </div>
+                
+                <div class="interaction-card fortune-card-wrapper glass-card">
+                    <h3 class="card-title">🔮 抽取签文</h3>
+                    <div class="fortune-card-inner" id="fortune-card">
+                        <div class="card-side front">
+                            <div class="pattern"></div>
+                            <span>点击揭晓</span>
+                        </div>
+                        <div class="card-side back">
+                            <p id="fortune-text">加载中...</p>
+                            <div class="card-footer">Happy Birthday</div>
+                        </div>
+                    </div>
+                    <button id="redraw-btn" class="secondary-btn">再抽一签</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第3页：祝福礼盒 -->
+        <section id="page-3" class="page">
+            <div class="gift-scene">
+                <div id="gift-box" class="gift-box-3d">
+                    <div class="box-lid"></div>
+                    <div class="box-body"></div>
+                    <div class="ribbon-v"></div>
+                    <div class="ribbon-h"></div>
+                </div>
+                
+                <div id="wishes-panel" class="wishes-panel glass-card hidden">
+                    <div class="wish-header">
+                        <span class="heart-icon">❤️</span>
+                        <h2 id="short-wish-title"></h2>
+                    </div>
+                    <div class="wish-body">
+                        <div class="typing-text" id="long-wish-content"></div>
+                    </div>
+                    <div class="wish-footer">
+                        <button id="voice-btn" class="icon-btn">🎤 语音祝福</button>
+                        <button id="save-image-btn" class="icon-btn">📸 收藏长图</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第4页：纪念册 -->
+        <section id="page-4" class="page">
+            <div class="memory-container glass-card">
+                <h2 class="section-title">✨ 生日纪念册</h2>
+                <div class="memory-grid">
+                    <div class="grid-item countdown-box">
+                        <p class="label">距离下个生日</p>
+                        <div class="timer">
+                            <span id="cd-days">000</span><small>天</small>
+                        </div>
+                    </div>
+                    <div class="grid-item wallpaper-box">
+                        <p class="label">专属壁纸</p>
+                        <div class="preview-area" id="wallpaper-canvas-container"></div>
+                        <button id="gen-wallpaper-btn" class="mini-btn">换个模板</button>
+                    </div>
+                    <div class="grid-item whisper-box">
+                        <p class="label">悄悄话</p>
+                        <div class="whisper-content">
+                            <p id="whisper-text">点击查看...</p>
+                        </div>
+                        <button id="next-whisper-btn" class="mini-btn">下一条</button>
+                    </div>
+                </div>
+                <div id="final-celebration" class="final-celebration hidden">
+                    <h1 class="shimmer-text">Happy Birthday!</h1>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 音效资源 -->
+    <audio id="sound-unlock" src="assets/audio/cheer.mp3"></audio>
+    <audio id="sound-blow" src="assets/audio/blow.mp3"></audio>
+    <audio id="sound-card" src="assets/audio/pop.mp3"></audio>
+    <audio id="sound-gift" src="assets/audio/gift_open.mp3"></audio>
+    <audio id="sound-piano" src="assets/audio/piano.mp3"></audio>
+    <audio id="voice-audio" src="assets/audio/voice.mp3"></audio>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
