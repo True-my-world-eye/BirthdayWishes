@@ -55,7 +55,6 @@
                     <input type="text" id="unlock-input" placeholder="请在这里输入" autocomplete="off">
                     <div id="error-msg" class="error-msg hidden"></div>
                 </div>
-                <div id="skip-unlock" class="hidden-link">跳过解锁</div>
             </div>
         </section>
 
@@ -80,16 +79,23 @@
                         </div>
                         <div class="card-side back">
                             <p id="fortune-text">加载中...</p>
-                            <div class="card-footer">Happy Birthday</div>
                         </div>
                     </div>
-                    <button id="redraw-btn" class="secondary-btn">再抽一签</button>
+                    <button id="redraw-btn" class="secondary-btn">换一签</button>
                 </div>
             </div>
 
             <!-- 全屏许愿仪式弹层 -->
             <div id="wish-ceremony-layer" class="ceremony-layer hidden">
                 <div class="starry-bg"></div> <!-- 星空背景 -->
+                <div class="fireworks-container" id="fireworks-container"></div> <!-- 烟花容器 -->
+                
+                <div id="lighter-container" class="lighter-container">
+                    <div class="lighter-body"></div>
+                    <div class="lighter-cap"></div>
+                    <div class="lighter-flame-source"></div>
+                </div>
+                
                 <div class="ceremony-content glass-card">
                     <div class="ceremony-header">
                         <h2 id="ceremony-title">点亮你的生日蜡烛</h2>
@@ -98,26 +104,43 @@
                     
                     <div class="cake-grand-wrapper">
                         <div class="cake-grand">
-                            <div class="candles-20-container" id="candles-20">
-                                <!-- 数字蜡烛 20 -->
-                                <div class="candle-num num-2">
-                                    <div class="flame hidden"></div>
+                            <!-- 蜡烛放在最顶层 -->
+                            <div class="candles-container-grand" id="candles-grand"></div>
+                            
+                            <!-- 顶层 -->
+                            <div class="cake-tier tier-top">
+                                <div class="tier-top-surface">
+                                    <div class="cake-decoration-top">🍓</div>
                                 </div>
-                                <div class="candle-num num-0">
-                                    <div class="flame hidden"></div>
-                                </div>
+                                <div class="tier-side"></div>
                             </div>
-                            <div class="cake-layer-top"></div>
-                            <div class="cake-layer-middle"></div>
-                            <div class="cake-layer-bottom"></div>
+                            
+                            <!-- 中层 -->
+                            <div class="cake-tier tier-middle">
+                                <div class="tier-top-surface"></div>
+                                <div class="tier-side"></div>
+                            </div>
+                            
+                            <!-- 底层 -->
+                            <div class="cake-tier tier-bottom">
+                                <div class="tier-top-surface"></div>
+                                <div class="tier-side"></div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- 许愿输入 -->
                     <div class="wish-stage hidden" id="wish-stage">
-                        <textarea id="wish-text-grand" class="wish-input-grand" placeholder="在这里写下你的愿望..."></textarea>
+                        <div id="wish-ball-container" class="wish-ball-container">
+                            <textarea id="wish-text-grand" class="wish-input-grand" placeholder="在这里写下你的愿望..."></textarea>
+                        </div>
                         <p class="privacy-hint-grand">🔒 放心写下愿望，没有人会知道这里的内容</p>
                         <button id="confirm-wish-btn" class="glow-btn-small">许好了</button>
+                    </div>
+
+                    <!-- 自定义提示 Toast -->
+                    <div id="ceremony-toast" class="ceremony-toast hidden">
+                        <p>💡 也许写下愿望会更灵验哦？<br><small>(再次长按即可跳过)</small></p>
                     </div>
 
                     <!-- 操作指引 -->
@@ -127,8 +150,9 @@
 
                     <!-- 最终祝福 -->
                     <div id="grand-feedback" class="grand-feedback hidden">
-                        <h1 class="shimmer-text-large">愿望已收到</h1>
-                        <p class="sub-text">终会梦想成真 ✨</p>
+                        <h1 class="shimmer-text-large">20岁生日快乐</h1>
+                        <p class="sub-text">新的一年终会梦想成真 ✨</p>
+                        <button id="return-ceremony-btn" class="secondary-btn-light">返回</button>
                     </div>
                 </div>
             </div>

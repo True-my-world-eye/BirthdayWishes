@@ -3,9 +3,9 @@
  */
 
 const config = {
-    nickname: "潘可依", // 接收者名字 (必填)
-    sender: "张宏伟",      // 发送者名字 (必填)
-    birthday: "03-04", // 格式: MM-DD
+    nickname: "xxx", // 接收者名字 (必填)
+    sender: "xxx",      // 发送者名字 (必填)
+    birthday: "03-06", // 格式: MM-DD
     
     // 错误提示池
     errors: {
@@ -57,7 +57,7 @@ let state = {
     currentPage: 1,
     isMusicPlaying: false,
     candlesBlown: 0,
-    totalCandles: 6,
+    totalCandles: 3,
     isGiftOpen: false
 };
 
@@ -71,18 +71,22 @@ const dom = {
     unlockInput: document.getElementById('unlock-input'),
     errorMsg: document.getElementById('error-msg'),
     targetName: document.getElementById('target-name'),
-    skipUnlock: document.getElementById('skip-unlock'),
     
     // Page 2: Ceremony
     startWishCard: document.getElementById('start-wish-card'),
     ceremonyLayer: document.getElementById('wish-ceremony-layer'),
     closeCeremony: document.getElementById('close-ceremony'),
-    candleNums: document.querySelectorAll('.candle-num'),
+    candlesGrand: document.getElementById('candles-grand'),
     wishStage: document.getElementById('wish-stage'),
     wishInputGrand: document.getElementById('wish-text-grand'),
+    wishBallContainer: document.getElementById('wish-ball-container'),
     confirmWishBtn: document.getElementById('confirm-wish-btn'),
     actionGuide: document.getElementById('guide-text'),
     grandFeedback: document.getElementById('grand-feedback'),
+    ceremonyToast: document.getElementById('ceremony-toast'),
+    returnCeremonyBtn: document.getElementById('return-ceremony-btn'),
+    fireworksContainer: document.getElementById('fireworks-container'),
+    lighterContainer: document.getElementById('lighter-container'),
 
     fortuneCard: document.getElementById('fortune-card'),
     fortuneText: document.getElementById('fortune-text'),
@@ -143,23 +147,21 @@ function bindEvents() {
     dom.unlockInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') checkErrorOnEnter();
     });
-    dom.skipUnlock.addEventListener('click', () => switchPage(2));
 
     // 许愿仪式入口
     dom.startWishCard.addEventListener('click', startCeremony);
     dom.closeCeremony.addEventListener('click', closeCeremony);
-
-    // 蜡烛点亮
-    dom.candleNums.forEach(candle => {
-        candle.addEventListener('click', (e) => lightOneCandle(e.currentTarget));
-    });
+    dom.returnCeremonyBtn.addEventListener('click', closeCeremony);
 
     // 确认许愿
     dom.confirmWishBtn.addEventListener('click', confirmWish);
 
     // 抽签
     dom.fortuneCard.addEventListener('click', flipFortuneCard);
-    dom.redrawBtn.addEventListener('click', resetFortuneCard);
+    dom.redrawBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetFortuneCard();
+    });
 
     // 礼盒
     dom.giftBox.addEventListener('click', openGiftBox);
@@ -316,6 +318,7 @@ function showError(type) {
 }
 
 // 仪式流程控制
+// 仪式流程控制
 function startCeremony() {
     dom.ceremonyLayer.classList.remove('hidden');
     resetCeremony();
@@ -326,28 +329,62 @@ function closeCeremony() {
 }
 
 function resetCeremony() {
-    ceremonyState = { litCount: 0, isDark: false, isWished: false, isBlown: false };
+    ceremonyState = { litCount: 0, isDark: false, isWished: false, isBlown: false, hasPrompted: false };
     dom.ceremonyLayer.classList.remove('lights-off');
-    dom.candleNums.forEach(c => c.querySelector('.flame').classList.add('hidden'));
+    
+    // 生成 3 根蜡烛
+    dom.candlesGrand.innerHTML = '';
+    for(let i=0; i<3; i++) {
+        const c = document.createElement('div');
+        c.className = 'candle-refined';
+        c.innerHTML = '<div class="flame hidden"></div>';
+        c.onclick = (e) => lightOneCandle(e.currentTarget);
+        dom.candlesGrand.appendChild(c);
+    }
+
     dom.wishStage.classList.add('hidden');
     dom.grandFeedback.classList.add('hidden');
     dom.actionGuide.classList.remove('hidden');
     dom.actionGuide.innerText = "点击蜡烛点亮它们";
     dom.wishInputGrand.value = "";
+    dom.wishBallContainer.className = 'wish-ball-container';
+    dom.fireworksContainer.innerHTML = '';
 }
 
 function lightOneCandle(candleEl) {
-    if (ceremonyState.isDark) return; // 关灯后不能再点
+    if (ceremonyState.isDark) return;
     
     const flame = candleEl.querySelector('.flame');
     if (flame.classList.contains('hidden')) {
-        flame.classList.remove('hidden');
-        playSound('piano'); // 点燃音效
-        ceremonyState.litCount++;
+        // 获取蜡烛相对于页面的位置
+        const rect = candleEl.getBoundingClientRect();
+        const lighter = dom.lighterContainer;
         
-        if (ceremonyState.litCount === 2) {
-            setTimeout(turnOffLights, 800);
-        }
+        // 移动打火机到蜡烛位置
+        lighter.style.left = `${rect.left + rect.width / 2}px`;
+        lighter.style.top = `${rect.top}px`;
+        lighter.classList.add('active');
+        
+        // 延迟开启打火机盖子并点火
+        setTimeout(() => {
+            lighter.classList.add('open');
+            
+            setTimeout(() => {
+                flame.classList.remove('hidden');
+                playSound('piano');
+                ceremonyState.litCount++;
+                
+                // 移走打火机
+                setTimeout(() => {
+                    lighter.classList.remove('open');
+                    setTimeout(() => lighter.classList.remove('active'), 300);
+                }, 400);
+
+                if (ceremonyState.litCount === 3) {
+                    setTimeout(turnOffLights, 1000);
+                }
+            }, 300);
+        }, 100);
     }
 }
 
@@ -363,56 +400,119 @@ function turnOffLights() {
 
 function confirmWish() {
     const wish = dom.wishInputGrand.value.trim();
-    if (!wish) {
-        alert("写下愿望会更灵验哦~");
+    
+    // 第一次没填且没提示过，显示自定义 Toast
+    if (!wish && !ceremonyState.hasPrompted) {
+        showCeremonyToast("写下愿望会更灵验哦~");
+        ceremonyState.hasPrompted = true;
         return;
     }
     
+    // 填写了或者第二次尝试，直接进入下一步
     ceremonyState.isWished = true;
     dom.wishStage.classList.add('hidden');
-    dom.actionGuide.innerText = "现在，长按蜡烛吹灭它";
-    dom.actionGuide.classList.remove('hidden'); // 确保显示
+    dom.actionGuide.innerText = "现在，长按屏幕吹灭它";
+    dom.actionGuide.classList.remove('hidden');
     
-    // 绑定吹蜡烛事件 (长按任意地方或蜡烛)
+    // 绑定吹蜡烛事件
     const layer = dom.ceremonyLayer;
     let blowTimer;
     
     const startBlow = (e) => {
         if (!ceremonyState.isWished || ceremonyState.isBlown) return;
-        blowTimer = setTimeout(blowOutCeremony, 1500);
-        // 可以加一些抖动效果
-        dom.candleNums.forEach(c => c.querySelector('.flame').style.transform = "translateX(-50%) scale(1.2)");
+        blowTimer = setTimeout(executeBlowingAnimation, 1200);
+        document.querySelectorAll('.candle-refined .flame').forEach(f => f.style.transform = "scale(1.3)");
+        
+        // 创建多道吹气风动效
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+                const wind = document.createElement('div');
+                wind.className = 'wind-stream';
+                wind.style.left = `${10 + Math.random() * 80}%`;
+                wind.style.top = `${30 + Math.random() * 40}%`;
+                wind.style.width = `${100 + Math.random() * 200}px`;
+                wind.style.animation = `windBlow 0.8s ease-out forwards`;
+                dom.ceremonyLayer.appendChild(wind);
+                setTimeout(() => wind.remove(), 800);
+            }, i * 200);
+        }
     };
     
     const endBlow = () => {
         clearTimeout(blowTimer);
-        dom.candleNums.forEach(c => c.querySelector('.flame').style.transform = "translateX(-50%) scale(1)");
+        document.querySelectorAll('.candle-refined .flame').forEach(f => f.style.transform = "scale(1)");
     };
     
-    layer.addEventListener('mousedown', startBlow);
-    layer.addEventListener('touchstart', startBlow);
-    window.addEventListener('mouseup', endBlow);
-    window.addEventListener('touchend', endBlow);
+    layer.onmousedown = startBlow;
+    layer.ontouchstart = startBlow;
+    window.onmouseup = endBlow;
+    window.ontouchend = endBlow;
 }
 
-function blowOutCeremony() {
+function executeBlowingAnimation() {
     if (ceremonyState.isBlown) return;
     ceremonyState.isBlown = true;
     
     playSound('blow');
-    dom.candleNums.forEach(c => c.querySelector('.flame').classList.add('hidden'));
+    document.querySelectorAll('.candle-refined .flame').forEach(f => f.classList.add('hidden'));
     
-    setTimeout(() => {
-        dom.actionGuide.classList.add('hidden');
-        dom.grandFeedback.classList.remove('hidden');
-        createConfetti();
-        playSound('cheer');
+    // 如果有愿望，执行球升空动画
+    const wish = dom.wishInputGrand.value.trim();
+    if (wish) {
+        dom.wishStage.classList.remove('hidden');
+        dom.wishBallContainer.classList.add('shrinking');
         
         setTimeout(() => {
-             // 仪式结束，自动关闭或留给用户关闭
-             // closeCeremony();
-        }, 4000);
-    }, 500);
+            dom.wishBallContainer.classList.add('rising');
+            setTimeout(() => {
+                createFireworksExplosion();
+                showGrandFeedback();
+            }, 1500);
+        }, 1500);
+    } else {
+        showGrandFeedback();
+    }
+}
+
+function showGrandFeedback() {
+    dom.actionGuide.classList.add('hidden');
+    dom.wishStage.classList.add('hidden');
+    dom.grandFeedback.classList.remove('hidden');
+    playSound('cheer');
+}
+
+function showCeremonyToast(text) {
+    dom.ceremonyToast.innerText = text;
+    dom.ceremonyToast.classList.remove('hidden');
+    setTimeout(() => dom.ceremonyToast.classList.add('hidden'), 2500);
+}
+
+function createFireworksExplosion() {
+    const container = dom.fireworksContainer;
+    const colors = ['#FFD700', '#FF69B4', '#00BFFF', '#ADFF2F', '#FFFFFF'];
+    
+    for (let i = 0; i < 50; i++) {
+        const p = document.createElement('div');
+        p.className = 'firework-particle';
+        p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        p.style.left = '50%';
+        p.style.top = '20%'; // 高位绽放
+        
+        container.appendChild(p);
+        
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = Math.random() * 150 + 50;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+        
+        p.animate([
+            { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+            { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
+        ], {
+            duration: 1000 + Math.random() * 1000,
+            easing: 'cubic-bezier(0, .9, .57, 1)'
+        }).onfinish = () => p.remove();
+    }
 }
 
 function switchPage(index) {
@@ -463,8 +563,7 @@ function flipFortuneCard() {
     dom.fortuneCard.classList.add('flipped');
 }
 
-function resetFortuneCard(e) {
-    e.stopPropagation();
+function resetFortuneCard() {
     dom.fortuneCard.classList.remove('flipped');
 }
 
