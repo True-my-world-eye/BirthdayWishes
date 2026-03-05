@@ -132,6 +132,36 @@ function initApp() {
 
     bindEvents();
     updateCountdown();
+    
+    // 尝试自动播放音乐
+    tryAutoplay();
+}
+
+function tryAutoplay() {
+    // 1. 直接尝试播放
+    const playPromise = dom.bgMusic.play();
+    
+    if (playPromise !== undefined) {
+        playPromise.then(() => {
+            state.isMusicPlaying = true;
+            dom.musicControl.classList.add('playing');
+        }).catch(error => {
+            // 2. 浏览器限制自动播放，监听首次交互后触发
+            console.log("Autoplay blocked, waiting for user interaction...");
+            const playOnFirstInteraction = () => {
+                if (!state.isMusicPlaying) {
+                    dom.bgMusic.play().then(() => {
+                        state.isMusicPlaying = true;
+                        dom.musicControl.classList.add('playing');
+                    });
+                }
+                document.removeEventListener('click', playOnFirstInteraction);
+                document.removeEventListener('touchstart', playOnFirstInteraction);
+            };
+            document.addEventListener('click', playOnFirstInteraction);
+            document.addEventListener('touchstart', playOnFirstInteraction);
+        });
+    }
 }
 
 function bindEvents() {

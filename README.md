@@ -44,28 +44,75 @@ BirthdayWishes/
 
 ## ⚙️ 定制指南
 
-打开 `js/script.js`，修改顶部的 `config` 对象：
+打开 [script.js](file:///f:/AAAAclass/create/BirthdayWishes/js/script.js)，修改顶部的 `config` 对象来个性化你的网页：
 
 ```javascript
 const config = {
-    nickname: "小仙女",       // 对方昵称
-    birthday: "03-06",        // 生日日期 (MM-DD)
-    unlockPassword: "生日快乐", // 解锁口令
-    fortunes: [...],          // 随机签文池
-    shortWish: "...",         // 短标题
-    longWish: "...",          // 长篇祝福 (支持 \n 换行)
-    secrets: [...]            // 随机悄悄话池
+    nickname: "xxx", // 接收者名字 (必填)
+    sender: "xxx",   // 发送者名字 (必填)
+    birthday: "03-06", // 生日日期 (格式: MM-DD)
+    
+    // 错误提示池：当名字输入错误时随机显示的文案
+    errors: {
+        sender: [...],      // 发送者名字输错时
+        recipient: [...],   // 接收者名字输错时
+        content: [...],     // 缺少“生日快乐”关键词时
+        format: [...]       // 格式完全不对时
+    },
+    
+    // 签文内容：互动页翻转卡片的治愈文案
+    fortunes: [...],
+    
+    // 祝福语
+    shortWish: "生日快乐，万事顺意 ✨",
+    longWish: "愿你新的一岁，平安喜乐...", // 支持 \n 换行
+    
+    // 纪念页：随机显示的悄悄话
+    secrets: [...]
 };
 ```
 
-## 🚀 运行与调试
+## 🚀 部署指南 (Vercel)
+
+本项目推荐部署到 [Vercel](https://vercel.com/)，它是托管静态网页的最佳平台。
+
+### 方式一：直接上传 (推荐)
+1.  安装 Vercel CLI：`npm i -g vercel`
+2.  在项目根目录下运行：`vercel`
+3.  按照命令行提示完成部署即可。
+
+### 方式二：GitHub 关联
+1.  将代码推送到你的 GitHub 仓库。
+2.  登录 Vercel 官网，点击 "Add New" -> "Project"。
+3.  导入你的 GitHub 仓库，点击 "Deploy"。
+4.  之后每次推送代码，网页都会自动更新。
+
+### 环境变量与配置
+*   项目包含 `vercel.json` 配置文件，已预设好路由重写规则，确保部署后能正常访问。
+
+## 🛠️ 运行与调试
 
 *   **本地查看**：建议使用 VS Code 的 `Live Server` 插件运行，以保证音频和 Canvas 正常工作。
-*   **移动端**：按下 `F12` 并切换到“手机模式”，本项目已针对手机竖屏进行深度适配。
+*   **移动端调试**：按下 `F12` 并在浏览器开发者工具中切换到“手机模式（Toggle device toolbar）”，本项目已针对手机竖屏进行深度适配。
+*   **音频说明**：部分移动端浏览器要求用户点击屏幕后才能播放音频，网页已内置点击任意位置自动激活音频的逻辑。
 
 ## 🎨 视觉微调
 
-如需调整主色调，请修改 `css/style.css` 中的 `:root` 变量：
-*   `--cream-bg`: 背景奶油色
-*   `--soft-pink`: 柔粉色
-*   `--pale-gold`: 标志性淡金色
+如需调整主色调或字体，请修改 [style.css](file:///f:/AAAAclass/create/BirthdayWishes/css/style.css) 中的 `:root` 变量：
+
+*   `--cream-bg`: 全局背景色（奶油风核心）
+*   `--soft-pink`: 辅助柔粉色（用于礼盒、蛋糕层等）
+*   `--pale-gold`: 标志性淡金色（用于边框、按钮等）
+*   `--accent-gold`: 强调金（用于标题、高亮文字、打火机等）
+*   `--font-title`: 标题字体（默认为华丽的 'ZCOOL XiaoWei'）
+
+## 📄 预设文件说明
+
+*   `index.html`: 网页主结构，包含四个核心展示页。
+*   `css/style.css`: 核心样式，定义了所有的 3D 蛋糕、打火机动效及玻璃拟态 UI。
+*   `js/script.js`: 核心逻辑，控制解锁流程、仪式状态机及 Canvas 粒子系统。
+*   `vercel.json`: Vercel 部署配置文件，预设了静态路由规则。
+*   `.vercelignore`: 忽略文件列表，确保部署时只上传必要的前端资源。
+
+---
+祝你能为 TA 准备一个完美的惊喜！🎂✨
