@@ -49,7 +49,7 @@ BirthdayWishes/
 ```javascript
 const config = {
     nickname: "小仙女",       // 对方昵称
-    birthday: "03-04",        // 生日日期 (MM-DD)
+    birthday: "03-06",        // 生日日期 (MM-DD)
     unlockPassword: "生日快乐", // 解锁口令
     fortunes: [...],          // 随机签文池
     shortWish: "...",         // 短标题

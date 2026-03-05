@@ -3,17 +3,41 @@
  */
 
 const config = {
-    nickname: "小仙女",
+    nickname: "潘可依", // 接收者名字 (必填)
+    sender: "张宏伟",      // 发送者名字 (必填)
     birthday: "03-04", // 格式: MM-DD
-    unlockPassword: "生日快乐",
+    
+    // 错误提示池
+    errors: {
+        sender: [ // 发送者名字输错
+            "居然连我名字都输错了！😠",
+            "再给你一次机会，好好想想我是谁！😤",
+            "名字不对，蛋糕不给吃！🚫",
+            "是不是把我的名字记成别人了？💔"
+        ],
+        recipient: [ // 接收者名字输错
+            "连自己名字都输错，重新来！👀",
+            "你是不是忘了自己叫什么了？🤔",
+        ],
+        content: [ // 没写生日快乐
+            "你过生日不开心吗？🥺",
+            "要说“生日快乐”才行哦！🎂",
+            "仪式感呢？快补上祝福！✨"
+        ],
+        format: [ // 格式完全不对
+            "格式不对哦，请看上面的提示~ 👀",
+            "要按照“xxx祝xxx生日快乐”的格式写哦 📝"
+        ]
+    },
     
     // 签文内容
     fortunes: [
-        "愿你历经山河，仍觉得人间值得。",
-        "新的一岁，愿你眼里有光，笑里坦荡。",
-        "按时吃饭，按时睡觉，乖乖长大，开心就好。",
-        "愿世间所有美好，都与你不期而遇。",
-        "生日快乐！希望你每一天都像今天一样闪闪发光。"
+        "岁岁无虞，长安常乐,昭昭如愿，岁岁安澜",
+        "春风十里，贺卿良辰",
+        "花卉沿途盛开，以后的路也是",
+        "今天不吹牛了，吹蜡烛🕯️",
+        "生日快乐！希望你每一天都像今天一样闪闪发光。",
+        "祝你寿比南山大石头，福如东海老乌龟"
     ],
     
     // 祝福语
@@ -45,9 +69,21 @@ const dom = {
     bgMusic: document.getElementById('bg-music'),
     pages: document.querySelectorAll('.page'),
     unlockInput: document.getElementById('unlock-input'),
-    unlockBtn: document.getElementById('unlock-btn'),
+    errorMsg: document.getElementById('error-msg'),
+    targetName: document.getElementById('target-name'),
     skipUnlock: document.getElementById('skip-unlock'),
-    candlesContainer: document.getElementById('candles-container'),
+    
+    // Page 2: Ceremony
+    startWishCard: document.getElementById('start-wish-card'),
+    ceremonyLayer: document.getElementById('wish-ceremony-layer'),
+    closeCeremony: document.getElementById('close-ceremony'),
+    candleNums: document.querySelectorAll('.candle-num'),
+    wishStage: document.getElementById('wish-stage'),
+    wishInputGrand: document.getElementById('wish-text-grand'),
+    confirmWishBtn: document.getElementById('confirm-wish-btn'),
+    actionGuide: document.getElementById('guide-text'),
+    grandFeedback: document.getElementById('grand-feedback'),
+
     fortuneCard: document.getElementById('fortune-card'),
     fortuneText: document.getElementById('fortune-text'),
     redrawBtn: document.getElementById('redraw-btn'),
@@ -77,6 +113,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initApp() {
+    // 设置名字
+    // dom.targetName.innerText = config.nickname; // 这一行被注释或删除了，导致网页报错？
+    // 如果 HTML 中删除了 <span id="target-name"></span>，那么这行代码会报错，导致后面的 js 无法执行
+    if (dom.targetName) {
+        dom.targetName.innerText = config.nickname;
+    }
+    
     // 模拟资源加载
     setTimeout(() => {
         dom.loading.style.opacity = '0';
@@ -84,7 +127,6 @@ function initApp() {
     }, 2000);
 
     bindEvents();
-    renderCandles();
     updateCountdown();
 }
 
@@ -92,27 +134,28 @@ function bindEvents() {
     // 音乐
     dom.musicControl.addEventListener('click', toggleMusic);
 
-    // 解锁
-    dom.unlockBtn.addEventListener('click', handleUnlock);
-    dom.unlockInput.addEventListener('input', () => playSound('piano'));
+    // 解锁 (Input Only)
+    dom.unlockInput.addEventListener('focus', () => {
+        dom.errorMsg.classList.add('hidden');
+        dom.unlockInput.classList.remove('error-shake');
+    });
+    dom.unlockInput.addEventListener('input', handleUnlockInput);
+    dom.unlockInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkErrorOnEnter();
+    });
     dom.skipUnlock.addEventListener('click', () => switchPage(2));
 
-    // 吹蜡烛 (长按逻辑)
-    let pressTimer;
-    const candleCard = document.querySelector('.candle-card');
-    const startPress = (e) => {
-        e.preventDefault();
-        pressTimer = setTimeout(blowCandles, 1200);
-        candleCard.classList.add('pressing');
-    };
-    const endPress = () => {
-        clearTimeout(pressTimer);
-        candleCard.classList.remove('pressing');
-    };
-    candleCard.addEventListener('mousedown', startPress);
-    candleCard.addEventListener('touchstart', startPress);
-    window.addEventListener('mouseup', endPress);
-    window.addEventListener('touchend', endPress);
+    // 许愿仪式入口
+    dom.startWishCard.addEventListener('click', startCeremony);
+    dom.closeCeremony.addEventListener('click', closeCeremony);
+
+    // 蜡烛点亮
+    dom.candleNums.forEach(candle => {
+        candle.addEventListener('click', (e) => lightOneCandle(e.currentTarget));
+    });
+
+    // 确认许愿
+    dom.confirmWishBtn.addEventListener('click', confirmWish);
 
     // 抽签
     dom.fortuneCard.addEventListener('click', flipFortuneCard);
@@ -124,6 +167,17 @@ function bindEvents() {
     // 纪念册
     dom.nextWhisperBtn.addEventListener('click', showNextWhisper);
     dom.genWallpaperBtn.addEventListener('click', generateWallpaper);
+}
+
+// 辅助：Toast 提示
+function showToast() {
+    dom.wishToast.classList.remove('hidden');
+    // 3秒后自动消失
+    setTimeout(hideToast, 3000);
+}
+
+function hideToast() {
+    dom.wishToast.classList.add('hidden');
 }
 
 // 背景粒子效果
@@ -178,17 +232,187 @@ function initCanvas() {
     animate();
 }
 
-// 核心逻辑
-function handleUnlock() {
+// 核心逻辑：解锁
+function handleUnlockInput() {
     const val = dom.unlockInput.value.trim();
-    if (val === config.unlockPassword) {
-        playSound('unlock');
-        createConfetti();
-        setTimeout(() => switchPage(2), 1500);
-    } else {
-        dom.unlockInput.style.borderColor = 'red';
-        setTimeout(() => dom.unlockInput.style.borderColor = '', 500);
+    
+    // 实时清除错误样式
+    if (dom.unlockInput.classList.contains('error-shake')) {
+        dom.unlockInput.classList.remove('error-shake');
+        dom.errorMsg.classList.add('hidden');
     }
+
+    // 解析输入
+    // 假设格式为：[发送者]祝[接收者][祝福语]
+    // 简单正则提取：(.*)祝(.*)(生日快乐.*)
+    
+    // 1. 完全匹配正确
+    if (val === `${config.sender}祝${config.nickname}生日快乐`) {
+        if (state.currentPage === 1) {
+            playSound('unlock');
+            createConfetti();
+            dom.unlockInput.blur();
+            dom.unlockInput.value = "开启祝福 ✨"; 
+            dom.unlockInput.disabled = true;
+            setTimeout(() => switchPage(2), 1500);
+        }
+        return;
+    }
+
+    // 2. 错误检测（仅在输入长度足够时才触发提示，避免输入过程中频繁报错）
+    // 为了不打断输入，这里只做简单的 Enter 键检测或者失去焦点检测？
+    // 但用户要求是“输入不是...就出现提示”，通常意味着实时或提交时。
+    // 由于去掉了按钮，我们可以在用户停顿或回车时检测，或者简单地检测关键词缺失。
+    
+    // 这里采用回车检测逻辑 (在 bindEvents 中已绑定 keypress Enter -> handleUnlockInput, 但 input 事件也会触发)
+    // 为了体验更好，我们在 input 事件中只做“正确解锁”，错误提示通过 keypress Enter 触发
+}
+
+// 单独处理回车键触发的错误提示
+function checkErrorOnEnter() {
+    const val = dom.unlockInput.value.trim();
+    let errorType = null;
+
+    if (!val.includes("祝")) {
+        errorType = 'format';
+    } else {
+        const parts = val.split("祝");
+        const inputSender = parts[0].trim();
+        const rest = parts[1].trim();
+        
+        // 检查发送者
+        if (inputSender !== config.sender) {
+            errorType = 'sender';
+        } 
+        // 检查接收者
+        else if (!rest.startsWith(config.nickname)) {
+            errorType = 'recipient';
+        }
+        // 检查祝福语 (生日快乐)
+        else if (!rest.includes("生日快乐")) {
+            errorType = 'content';
+        }
+    }
+
+    if (errorType) {
+        showError(errorType);
+    }
+}
+
+function showError(type) {
+    const msgs = config.errors[type] || config.errors.format;
+    const msg = msgs[Math.floor(Math.random() * msgs.length)];
+    
+    playSound('piano'); 
+    dom.unlockInput.classList.add('error-shake');
+    dom.errorMsg.innerText = msg;
+    dom.errorMsg.classList.remove('hidden');
+    
+    if (navigator.vibrate) navigator.vibrate(200);
+    
+    setTimeout(() => {
+        dom.unlockInput.classList.remove('error-shake');
+    }, 500);
+}
+
+// 仪式流程控制
+function startCeremony() {
+    dom.ceremonyLayer.classList.remove('hidden');
+    resetCeremony();
+}
+
+function closeCeremony() {
+    dom.ceremonyLayer.classList.add('hidden');
+}
+
+function resetCeremony() {
+    ceremonyState = { litCount: 0, isDark: false, isWished: false, isBlown: false };
+    dom.ceremonyLayer.classList.remove('lights-off');
+    dom.candleNums.forEach(c => c.querySelector('.flame').classList.add('hidden'));
+    dom.wishStage.classList.add('hidden');
+    dom.grandFeedback.classList.add('hidden');
+    dom.actionGuide.classList.remove('hidden');
+    dom.actionGuide.innerText = "点击蜡烛点亮它们";
+    dom.wishInputGrand.value = "";
+}
+
+function lightOneCandle(candleEl) {
+    if (ceremonyState.isDark) return; // 关灯后不能再点
+    
+    const flame = candleEl.querySelector('.flame');
+    if (flame.classList.contains('hidden')) {
+        flame.classList.remove('hidden');
+        playSound('piano'); // 点燃音效
+        ceremonyState.litCount++;
+        
+        if (ceremonyState.litCount === 2) {
+            setTimeout(turnOffLights, 800);
+        }
+    }
+}
+
+function turnOffLights() {
+    ceremonyState.isDark = true;
+    dom.ceremonyLayer.classList.add('lights-off');
+    dom.actionGuide.innerText = "许个愿吧...";
+    
+    setTimeout(() => {
+        dom.wishStage.classList.remove('hidden');
+    }, 1000);
+}
+
+function confirmWish() {
+    const wish = dom.wishInputGrand.value.trim();
+    if (!wish) {
+        alert("写下愿望会更灵验哦~");
+        return;
+    }
+    
+    ceremonyState.isWished = true;
+    dom.wishStage.classList.add('hidden');
+    dom.actionGuide.innerText = "现在，长按蜡烛吹灭它";
+    dom.actionGuide.classList.remove('hidden'); // 确保显示
+    
+    // 绑定吹蜡烛事件 (长按任意地方或蜡烛)
+    const layer = dom.ceremonyLayer;
+    let blowTimer;
+    
+    const startBlow = (e) => {
+        if (!ceremonyState.isWished || ceremonyState.isBlown) return;
+        blowTimer = setTimeout(blowOutCeremony, 1500);
+        // 可以加一些抖动效果
+        dom.candleNums.forEach(c => c.querySelector('.flame').style.transform = "translateX(-50%) scale(1.2)");
+    };
+    
+    const endBlow = () => {
+        clearTimeout(blowTimer);
+        dom.candleNums.forEach(c => c.querySelector('.flame').style.transform = "translateX(-50%) scale(1)");
+    };
+    
+    layer.addEventListener('mousedown', startBlow);
+    layer.addEventListener('touchstart', startBlow);
+    window.addEventListener('mouseup', endBlow);
+    window.addEventListener('touchend', endBlow);
+}
+
+function blowOutCeremony() {
+    if (ceremonyState.isBlown) return;
+    ceremonyState.isBlown = true;
+    
+    playSound('blow');
+    dom.candleNums.forEach(c => c.querySelector('.flame').classList.add('hidden'));
+    
+    setTimeout(() => {
+        dom.actionGuide.classList.add('hidden');
+        dom.grandFeedback.classList.remove('hidden');
+        createConfetti();
+        playSound('cheer');
+        
+        setTimeout(() => {
+             // 仪式结束，自动关闭或留给用户关闭
+             // closeCeremony();
+        }, 4000);
+    }, 500);
 }
 
 function switchPage(index) {
@@ -219,9 +443,16 @@ function blowCandles() {
     document.querySelectorAll('.candle').forEach(c => c.classList.add('off'));
     state.candlesBlown = state.totalCandles;
     createConfetti();
+    
+    // 愿望消失动画
+    dom.wishContainer.classList.add('wish-fading');
+    dom.blowInstruction.innerText = "愿望已许下...";
+    
     setTimeout(() => {
-        alert("愿望已经寄给星星啦！⭐");
-    }, 1000);
+        dom.wishContainer.style.display = 'none';
+        dom.wishFeedback.classList.remove('hidden');
+        playSound('cheer');
+    }, 1500);
 }
 
 function flipFortuneCard() {
